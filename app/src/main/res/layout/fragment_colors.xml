@@ -13,10 +13,11 @@
         android:scrollbars="vertical" />
 
     <RadioGroup
+        android:id="@+id/radioGroup"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="0.1"
-        android:checkedButton="@+id/deleteBtn"
+        android:checkedButton="@+id/delete_btn"
         android:gravity="center"
         android:orientation="horizontal">
 
@@ -27,13 +28,13 @@
             android:text="@string/delete" />
 
         <RadioButton
-            android:id="@+id/addBtn"
+            android:id="@+id/add_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/add" />
 
         <RadioButton
-            android:id="@+id/changeBtn"
+            android:id="@+id/change_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/change" />
