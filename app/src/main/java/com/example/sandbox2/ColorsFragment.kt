@@ -10,12 +10,28 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioGroup
 
-class ColorsFragment : Fragment(), ColorsCallback {
+interface ColorsController {
+    fun onClick(position: Int, checkedRadioId: Int)
+}
+
+class ColorsControllerImpl(val adapter: ColorsAdapter) : ColorsController {
+    override fun onClick(position: Int, checkedRadioId: Int) {
+        when (checkedRadioId) {
+            R.id.add_btn -> adapter.addItemAt(position + 1, randomColor())
+            R.id.change_btn -> adapter.changeItemAt(position, randomColor())
+            R.id.delete_btn -> adapter.deleteItemAt(position)
+        }
+    }
+}
+
+class ColorsFragment() : Fragment(), ColorsCallback {
+
+    val colorsAdapter = ColorsAdapter()
 
     lateinit var recyclerView: RecyclerView
     lateinit var radioGroup: RadioGroup
 
-    val colorsAdapter = ColorsAdapter()
+    lateinit var colorsController: ColorsController
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
@@ -29,6 +45,7 @@ class ColorsFragment : Fragment(), ColorsCallback {
         recyclerView.adapter = colorsAdapter
 
         colorsAdapter.callback = this
+        colorsController = ColorsControllerImpl(colorsAdapter)
 
         return view
     }
@@ -37,11 +54,8 @@ class ColorsFragment : Fragment(), ColorsCallback {
         val position = recyclerView.getChildAdapterPosition(itemView)
         if (position == RecyclerView.NO_POSITION) return
 
-        when (radioGroup.checkedRadioButtonId) {
-            R.id.add_btn -> colorsAdapter.addColorAt(position + 1)
-            R.id.change_btn -> colorsAdapter.changeColorAt(position)
-            R.id.delete_btn -> colorsAdapter.deleteColorAt(position)
-        }
+        colorsController.onClick(position,
+                radioGroup.checkedRadioButtonId)
     }
 
 }
