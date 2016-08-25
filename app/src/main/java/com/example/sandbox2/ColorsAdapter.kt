@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import java.util.*
 
 val colors: MutableList<Long> = mutableListOf(
         0xff00bcd4, 0xff3f51b5, 0xff4285f4, 0xffe91e63, 0xff0f9d58, 0xff8bc34a, 0xffff9800,
@@ -18,6 +17,10 @@ val colors: MutableList<Long> = mutableListOf(
         0xff303f9f, 0xff283593, 0xff7b1fa2, 0xff6a1b9a, 0xffc2185b
 )
 
+interface ColorsCallback {
+    fun onClick(itemView: View)
+}
+
 class ColorsViewHolder(itemView: View, val callback: ColorsCallback? = null) : RecyclerView.ViewHolder(itemView) {
     fun bind(hex: Long) {
         bind(hex.toInt()) // Really
@@ -26,8 +29,8 @@ class ColorsViewHolder(itemView: View, val callback: ColorsCallback? = null) : R
     private fun bind(hex: Int) {
         itemView.setBackgroundColor(hex)
 
-        val hexTextView = itemView.findViewById(R.id.hexTextView) as TextView
-        hexTextView.text = "#" + Integer.toHexString(hex)
+        val colorTextView = itemView.findViewById(R.id.hexTextView) as TextView
+        colorTextView.text = "#" + Integer.toHexString(hex)
 
         itemView.setOnClickListener {
             callback?.onClick(itemView)
@@ -35,12 +38,11 @@ class ColorsViewHolder(itemView: View, val callback: ColorsCallback? = null) : R
     }
 }
 
-interface ColorsCallback {
-    fun onClick(itemView: View)
-}
 
 class ColorsAdapter : RecyclerView.Adapter<ColorsViewHolder>() {
-    private var callback: ColorsCallback? = null
+
+    var recyclerView: RecyclerView? = null
+    var callback: ColorsCallback? = null
 
     override fun onBindViewHolder(holder: ColorsViewHolder, position: Int) = holder.bind(colors[position])
 
@@ -53,15 +55,32 @@ class ColorsAdapter : RecyclerView.Adapter<ColorsViewHolder>() {
         return ColorsViewHolder(v, callback)
     }
 
-    fun setCallback(callback: ColorsCallback) {
-        this.callback = callback
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView?) {
+        this.recyclerView = null
     }
 
-    fun addsThings() {
-        val position = 0
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView?) {
+        this.recyclerView = recyclerView
+    }
 
-        colors.add(position, 0xff00bcd4)
+    fun addColorAt(position: Int) {
+        colors.add(position, randomColor())
         notifyItemInserted(position)
+    }
+
+    fun deleteColorAt(position: Int) {
+        colors.removeAt(position)
+        notifyItemRemoved(position)
+    }
+
+    fun changeColorAt(position: Int) {
+        colors[position] = randomColor()
+        notifyItemChanged(position)
+    }
+
+    private fun randomColor(): Long {
+        val index = Math.random() * colors.count()
+        return colors[index.toInt()]
     }
 
 }

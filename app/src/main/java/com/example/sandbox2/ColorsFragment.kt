@@ -28,16 +28,20 @@ class ColorsFragment : Fragment(), ColorsCallback {
         recyclerView.layoutManager = LinearLayoutManager(view.context)
         recyclerView.adapter = colorsAdapter
 
-        colorsAdapter.setCallback(this)
+        colorsAdapter.callback = this
 
         return view
     }
 
-    override fun onClick(itemView: View) = when (radioGroup.checkedRadioButtonId) {
-        R.id.add_btn -> colorsAdapter.addsThings()
-        R.id.change_btn -> colorsAdapter.addsThings()
-        R.id.delete_btn -> colorsAdapter.addsThings()
-        else -> throw IllegalArgumentException("invalid resource")
+    override fun onClick(itemView: View) {
+        val position = recyclerView.getChildAdapterPosition(itemView)
+        if (position == RecyclerView.NO_POSITION) return
+
+        when (radioGroup.checkedRadioButtonId) {
+            R.id.add_btn -> colorsAdapter.addColorAt(position + 1)
+            R.id.change_btn -> colorsAdapter.changeColorAt(position)
+            R.id.delete_btn -> colorsAdapter.deleteColorAt(position)
+        }
     }
 
 }
