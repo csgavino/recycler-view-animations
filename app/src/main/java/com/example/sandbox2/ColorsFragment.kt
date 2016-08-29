@@ -17,6 +17,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioGroup
+import java.util.*
 
 interface ColorsController {
     fun onClick(position: Int, checkedRadioId: Int)
@@ -74,16 +75,26 @@ class ColorsFragment() : Fragment(), ColorsCallback {
 
 class MyLayoutManager(context: Context) : LinearLayoutManager(context) {
     override fun supportsPredictiveItemAnimations(): Boolean {
-        return true // or false
+        return true
     }
 }
 
 class MyItemAnimator() : DefaultItemAnimator() {
 
+    private var animatorCache: HashMap<ColorsViewHolder, AnimatorInfo> = HashMap()
+
     private class ColorsHolderInfo(vh: ColorsViewHolder) : ItemHolderInfo() {
         var color: Int = (vh.itemView.background as ColorDrawable).color
         var text: String = vh.colorTextView.text.toString()
     }
+
+    private data class AnimatorInfo(
+            val overallAnim: AnimatorSet,
+            val fadeToBlackAnim: ObjectAnimator,
+            val fadeFromBlackAnim: ObjectAnimator,
+            val oldTextRotate: ObjectAnimator,
+            val newTextRotate: ObjectAnimator
+    )
 
     override fun canReuseUpdatedViewHolder(viewHolder: RecyclerView.ViewHolder): Boolean {
         return true
@@ -99,6 +110,10 @@ class MyItemAnimator() : DefaultItemAnimator() {
     override fun recordPostLayoutInformation(state: RecyclerView.State,
                                              viewHolder: RecyclerView.ViewHolder): ItemHolderInfo {
         return ColorsHolderInfo(viewHolder as ColorsViewHolder)
+    }
+
+    override fun animateAdd(holder: RecyclerView.ViewHolder?): Boolean {
+        return super.animateAdd(holder)
     }
 
     override fun animateChange(oldHolder: RecyclerView.ViewHolder,
@@ -146,18 +161,38 @@ class MyItemAnimator() : DefaultItemAnimator() {
             }
         })
 
-        val changeAnim = AnimatorSet()
-        changeAnim.playTogether(bgAnim, textAnim)
-        changeAnim.addListener(object : AnimatorListenerAdapter() {
+        val overallAnim = AnimatorSet()
+        overallAnim.playTogether(bgAnim, textAnim)
+        overallAnim.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator?) {
-                dispatchAnimationsFinished()
+                dispatchAnimationFinished(newHolder)
+                animatorCache.remove(newHolder)
             }
         })
 
-        changeAnim.start()
+        val runningInfo = animatorCache[newHolder]
+        if (runningInfo != null) {
+            val firstHalf = runningInfo.oldTextRotate.isRunning
+            if (firstHalf) {
+                oldTextRotate.currentPlayTime = runningInfo.oldTextRotate.currentPlayTime
+                fadeToBlack.currentPlayTime = runningInfo.fadeToBlackAnim.currentPlayTime
+            } else {
+                newTextRotate.currentPlayTime = runningInfo.newTextRotate.currentPlayTime
+                fadeFromBlack.currentPlayTime = runningInfo.fadeFromBlackAnim.currentPlayTime
+            }
+
+            runningInfo.overallAnim.cancel()
+        }
+
+        animatorCache[newHolder] = AnimatorInfo(
+                overallAnim,
+                fadeToBlack,
+                fadeFromBlack,
+                oldTextRotate,
+                newTextRotate)
+
+        overallAnim.start()
 
         return super.animateChange(oldHolder, newHolder, itemPreInfo, itemPostInfo)
     }
 }
-
-
