@@ -11,6 +11,11 @@ val COLORS: MutableList<Long> = mutableListOf(
         0xff303f9f, 0xff283593, 0xff7b1fa2, 0xff6a1b9a, 0xffc2185b
 )
 
+fun List<Long>.random(): Long {
+    val index = Math.random() * count()
+    return get(index.toInt())
+}
+
 fun randomColor(): Long {
     val index = Math.random() * COLORS.count()
     return COLORS[index.toInt()]

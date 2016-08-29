@@ -1,8 +1,7 @@
 package com.example.sandbox2
 
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.view.View
+import android.support.v7.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 

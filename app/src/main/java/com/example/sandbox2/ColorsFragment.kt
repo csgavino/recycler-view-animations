@@ -1,8 +1,16 @@
 package com.example.sandbox2
 
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
@@ -44,6 +52,10 @@ class ColorsFragment() : Fragment(), ColorsCallback {
         recyclerView.layoutManager = LinearLayoutManager(view.context)
         recyclerView.adapter = colorsAdapter
 
+        recyclerView.layoutManager = MyLayoutManager(view.context)
+//        recyclerView.itemAnimator = DefaultItemAnimator()
+        recyclerView.itemAnimator = MyItemAnimator()
+
         colorsAdapter.callback = this
         colorsController = ColorsControllerImpl(colorsAdapter)
 
@@ -59,3 +71,93 @@ class ColorsFragment() : Fragment(), ColorsCallback {
     }
 
 }
+
+class MyLayoutManager(context: Context) : LinearLayoutManager(context) {
+    override fun supportsPredictiveItemAnimations(): Boolean {
+        return true // or false
+    }
+}
+
+class MyItemAnimator() : DefaultItemAnimator() {
+
+    private class ColorsHolderInfo(vh: ColorsViewHolder) : ItemHolderInfo() {
+        var color: Int = (vh.itemView.background as ColorDrawable).color
+        var text: String = vh.colorTextView.text.toString()
+    }
+
+    override fun canReuseUpdatedViewHolder(viewHolder: RecyclerView.ViewHolder): Boolean {
+        return true
+    }
+
+    override fun recordPreLayoutInformation(state: RecyclerView.State,
+                                            viewHolder: RecyclerView.ViewHolder,
+                                            changeFlags: Int,
+                                            payloads: MutableList<Any>): ItemHolderInfo {
+        return ColorsHolderInfo(viewHolder as ColorsViewHolder)
+    }
+
+    override fun recordPostLayoutInformation(state: RecyclerView.State,
+                                             viewHolder: RecyclerView.ViewHolder): ItemHolderInfo {
+        return ColorsHolderInfo(viewHolder as ColorsViewHolder)
+    }
+
+    override fun animateChange(oldHolder: RecyclerView.ViewHolder,
+                               newHolder: RecyclerView.ViewHolder,
+                               itemPreInfo: ItemHolderInfo,
+                               itemPostInfo: ItemHolderInfo): Boolean {
+
+        val vh = newHolder as ColorsViewHolder
+        val preInfo = itemPreInfo as ColorsHolderInfo
+        val postInfo = itemPostInfo as ColorsHolderInfo
+
+        val fadeToBlack = ObjectAnimator.ofArgb(vh.itemView,
+                "backgroundColor",
+                preInfo.color,
+                Color.BLACK)
+
+        val fadeFromBlack = ObjectAnimator.ofArgb(vh.itemView,
+                "backgroundColor",
+                Color.BLACK,
+                postInfo.color)
+
+        val bgAnim = AnimatorSet()
+        bgAnim.playSequentially(fadeToBlack, fadeFromBlack)
+
+        val oldTextRotate = ObjectAnimator.ofFloat(vh.colorTextView,
+                View.ROTATION_X,
+                0f,
+                90f)
+
+        val newTextRotate = ObjectAnimator.ofFloat(vh.colorTextView,
+                View.ROTATION_X,
+                -90f,
+                0f)
+
+        val textAnim = AnimatorSet()
+        textAnim.playSequentially(oldTextRotate, newTextRotate)
+
+        oldTextRotate.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationStart(animation: Animator?) {
+                vh.colorTextView.text = preInfo.text
+            }
+
+            override fun onAnimationEnd(animation: Animator?) {
+                vh.colorTextView.text = postInfo.text
+            }
+        })
+
+        val changeAnim = AnimatorSet()
+        changeAnim.playTogether(bgAnim, textAnim)
+        changeAnim.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator?) {
+                dispatchAnimationsFinished()
+            }
+        })
+
+        changeAnim.start()
+
+        return super.animateChange(oldHolder, newHolder, itemPreInfo, itemPostInfo)
+    }
+}
+
+

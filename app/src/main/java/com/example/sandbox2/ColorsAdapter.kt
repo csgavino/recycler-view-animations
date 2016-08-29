@@ -11,6 +11,9 @@ interface ColorsCallback {
 }
 
 class ColorsViewHolder(itemView: View, val callback: ColorsCallback? = null) : RecyclerView.ViewHolder(itemView) {
+
+    lateinit var colorTextView: TextView
+
     fun bind(hex: Long) {
         bind(hex.toInt()) // Really
     }
@@ -18,7 +21,7 @@ class ColorsViewHolder(itemView: View, val callback: ColorsCallback? = null) : R
     private fun bind(hex: Int) {
         itemView.setBackgroundColor(hex)
 
-        val colorTextView = itemView.findViewById(R.id.hexTextView) as TextView
+        colorTextView = itemView.findViewById(R.id.hexTextView) as TextView
         colorTextView.text = "#" + Integer.toHexString(hex)
 
         itemView.setOnClickListener {
