@@ -26,6 +26,12 @@ interface ColorsView {
     fun onLayoutManagerSelected(layoutManager: RecyclerView.LayoutManager)
 
     fun onItemAnimatorSelected(itemAnimator: SimpleItemAnimator)
+
+    fun addItemAt(position: Int, color: Long)
+
+    fun changeItemAt(position: Int, color: Long)
+
+    fun deleteItemAt(position: Int)
 }
 
 interface ColorsController {
@@ -34,9 +40,7 @@ interface ColorsController {
     fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean)
 }
 
-class ColorsControllerImpl(
-        val view: ColorsView,
-        val adapter: ColorsAdapter) : ColorsController {
+class ColorsControllerImpl(val view: ColorsView) : ColorsController {
 
     override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) = when (buttonView.id) {
         R.id.predictive_animations ->
@@ -53,14 +57,9 @@ class ColorsControllerImpl(
     }
 
     override fun onClick(position: Int, checkedRadioId: Int) = when (checkedRadioId) {
-        R.id.add_btn ->
-            adapter.addItemAt(position + 1, randomColor())
-
-        R.id.change_btn ->
-            adapter.changeItemAt(position, randomColor())
-
-        R.id.delete_btn ->
-            adapter.deleteItemAt(position)
+        R.id.add_btn -> view.addItemAt(position + 1, randomColor())
+        R.id.change_btn -> view.changeItemAt(position, randomColor())
+        R.id.delete_btn -> view.deleteItemAt(position)
 
         else -> throw IllegalArgumentException()
     }
@@ -96,7 +95,7 @@ class ColorsFragment() : Fragment(),
         recyclerView.adapter = colorsAdapter
 
         colorsAdapter.callback = this
-        colorsController = ColorsControllerImpl(this, colorsAdapter)
+        colorsController = ColorsControllerImpl(this)
 
         return view
     }
@@ -109,9 +108,8 @@ class ColorsFragment() : Fragment(),
                 radioGroup.checkedRadioButtonId)
     }
 
-    override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
-        colorsController.onCheckedChanged(buttonView, isChecked)
-    }
+    override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) =
+            colorsController.onCheckedChanged(buttonView, isChecked)
 
     override fun onLayoutManagerSelected(layoutManager: RecyclerView.LayoutManager) {
         recyclerView.layoutManager = layoutManager
@@ -121,12 +119,19 @@ class ColorsFragment() : Fragment(),
         recyclerView.itemAnimator = itemAnimator
     }
 
+    override fun addItemAt(position: Int, color: Long) =
+            colorsAdapter.addItemAt(position, color)
+
+    override fun changeItemAt(position: Int, color: Long) =
+            colorsAdapter.changeItemAt(position, color)
+
+    override fun deleteItemAt(position: Int) =
+            colorsAdapter.deleteItemAt(position)
+
 }
 
 class MyLayoutManager(context: Context) : LinearLayoutManager(context) {
-    override fun supportsPredictiveItemAnimations(): Boolean {
-        return true
-    }
+    override fun supportsPredictiveItemAnimations(): Boolean = true
 }
 
 class MyItemAnimator() : DefaultItemAnimator() {
@@ -153,9 +158,7 @@ class MyItemAnimator() : DefaultItemAnimator() {
             val newTextRotate: ObjectAnimator
     )
 
-    override fun canReuseUpdatedViewHolder(viewHolder: RecyclerView.ViewHolder): Boolean {
-        return true
-    }
+    override fun canReuseUpdatedViewHolder(viewHolder: RecyclerView.ViewHolder): Boolean = true
 
     override fun recordPreLayoutInformation(state: RecyclerView.State,
                                             viewHolder: RecyclerView.ViewHolder,
