@@ -16,6 +16,8 @@ import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
+import android.widget.CompoundButton
 import android.widget.RadioGroup
 import java.util.*
 
@@ -33,12 +35,15 @@ class ColorsControllerImpl(val adapter: ColorsAdapter) : ColorsController {
     }
 }
 
-class ColorsFragment() : Fragment(), ColorsCallback {
+class ColorsFragment() : Fragment(), ColorsCallback, CompoundButton.OnCheckedChangeListener {
+
 
     val colorsAdapter = ColorsAdapter()
 
     lateinit var recyclerView: RecyclerView
     lateinit var radioGroup: RadioGroup
+    lateinit var predictiveAnimations: CheckBox
+    lateinit var customAnimator: CheckBox
 
     lateinit var colorsController: ColorsController
 
@@ -47,15 +52,16 @@ class ColorsFragment() : Fragment(), ColorsCallback {
 
         val view = inflater.inflate(R.layout.fragment_colors, container, false)
 
-        radioGroup = view.findViewById(R.id.radioGroup) as RadioGroup
+        radioGroup = view.findViewById(R.id.radio_group) as RadioGroup
+        predictiveAnimations = view.findViewById(R.id.predictive_animations) as CheckBox
+        predictiveAnimations.setOnCheckedChangeListener(this)
+
+        customAnimator = view.findViewById(R.id.custom_animator) as CheckBox
+        customAnimator.setOnCheckedChangeListener(this)
 
         recyclerView = view.findViewById(R.id.colors) as RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(view.context)
         recyclerView.adapter = colorsAdapter
-
-        recyclerView.layoutManager = MyLayoutManager(view.context)
-//        recyclerView.itemAnimator = DefaultItemAnimator()
-        recyclerView.itemAnimator = MyItemAnimator()
 
         colorsAdapter.callback = this
         colorsController = ColorsControllerImpl(colorsAdapter)
@@ -71,6 +77,20 @@ class ColorsFragment() : Fragment(), ColorsCallback {
                 radioGroup.checkedRadioButtonId)
     }
 
+    override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
+        when (buttonView.id) {
+            R.id.predictive_animations ->
+                recyclerView.layoutManager =
+                        if (isChecked) MyLayoutManager(buttonView.context)
+                        else LinearLayoutManager(buttonView.context)
+
+            R.id.custom_animator ->
+                recyclerView.itemAnimator =
+                        if (isChecked) MyItemAnimator()
+                        else DefaultItemAnimator()
+        }
+    }
+
 }
 
 class MyLayoutManager(context: Context) : LinearLayoutManager(context) {
@@ -83,9 +103,16 @@ class MyItemAnimator() : DefaultItemAnimator() {
 
     private var animatorCache: HashMap<ColorsViewHolder, AnimatorInfo> = HashMap()
 
-    private class ColorsHolderInfo(vh: ColorsViewHolder) : ItemHolderInfo() {
-        var color: Int = (vh.itemView.background as ColorDrawable).color
-        var text: String = vh.colorTextView.text.toString()
+    private class ColorsHolderInfo() : ItemHolderInfo() {
+        var color: Int = -1
+        lateinit var text: String
+
+        fun setFrom(holder: ColorsViewHolder): ItemHolderInfo {
+            color = (holder.itemView.background as ColorDrawable).color
+            text = holder.colorTextView.text.toString()
+
+            return super.setFrom(holder)
+        }
     }
 
     private data class AnimatorInfo(
@@ -104,12 +131,12 @@ class MyItemAnimator() : DefaultItemAnimator() {
                                             viewHolder: RecyclerView.ViewHolder,
                                             changeFlags: Int,
                                             payloads: MutableList<Any>): ItemHolderInfo {
-        return ColorsHolderInfo(viewHolder as ColorsViewHolder)
+        return ColorsHolderInfo().setFrom(viewHolder as ColorsViewHolder)
     }
 
     override fun recordPostLayoutInformation(state: RecyclerView.State,
                                              viewHolder: RecyclerView.ViewHolder): ItemHolderInfo {
-        return ColorsHolderInfo(viewHolder as ColorsViewHolder)
+        return ColorsHolderInfo().setFrom(viewHolder as ColorsViewHolder)
     }
 
     override fun animateAdd(holder: RecyclerView.ViewHolder?): Boolean {
