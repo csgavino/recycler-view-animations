@@ -40,7 +40,19 @@ interface ColorsController {
     fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean)
 }
 
-class ColorsControllerImpl(val view: ColorsView) : ColorsController {
+interface ColorsGenerator {
+    fun generate(): Long
+}
+
+class ColorsGeneratorImpl : ColorsGenerator {
+    override fun generate(): Long = COLORS.random()
+
+}
+
+class ColorsControllerImpl(
+        val view: ColorsView,
+        val colorsGenerator: ColorsGenerator = ColorsGeneratorImpl()
+) : ColorsController {
 
     override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) = when (buttonView.id) {
         R.id.predictive_animations ->
@@ -57,8 +69,8 @@ class ColorsControllerImpl(val view: ColorsView) : ColorsController {
     }
 
     override fun onClick(position: Int, checkedRadioId: Int) = when (checkedRadioId) {
-        R.id.add_btn -> view.addItemAt(position + 1, randomColor())
-        R.id.change_btn -> view.changeItemAt(position, randomColor())
+        R.id.add_btn -> view.addItemAt(position + 1, colorsGenerator.generate())
+        R.id.change_btn -> view.changeItemAt(position, colorsGenerator.generate())
         R.id.delete_btn -> view.deleteItemAt(position)
 
         else -> throw IllegalArgumentException()
@@ -69,7 +81,6 @@ class ColorsFragment() : Fragment(),
         ColorsView,
         ColorsCallback,
         CompoundButton.OnCheckedChangeListener {
-
 
     val colorsAdapter = ColorsAdapter()
 
