@@ -13,6 +13,7 @@ import android.support.v4.app.Fragment
 import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.SimpleItemAnimator
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,30 +22,60 @@ import android.widget.CompoundButton
 import android.widget.RadioGroup
 import java.util.*
 
-interface ColorsController {
-    fun onClick(position: Int, checkedRadioId: Int)
+interface ColorsView {
+    fun onLayoutManagerSelected(layoutManager: RecyclerView.LayoutManager)
+
+    fun onItemAnimatorSelected(itemAnimator: SimpleItemAnimator)
 }
 
-class ColorsControllerImpl(val adapter: ColorsAdapter) : ColorsController {
-    override fun onClick(position: Int, checkedRadioId: Int) {
-        when (checkedRadioId) {
-            R.id.add_btn -> adapter.addItemAt(position + 1, randomColor())
-            R.id.change_btn -> adapter.changeItemAt(position, randomColor())
-            R.id.delete_btn -> adapter.deleteItemAt(position)
-        }
+interface ColorsController {
+    fun onClick(position: Int, checkedRadioId: Int)
+
+    fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean)
+}
+
+class ColorsControllerImpl(
+        val view: ColorsView,
+        val adapter: ColorsAdapter) : ColorsController {
+
+    override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) = when (buttonView.id) {
+        R.id.predictive_animations ->
+            view.onLayoutManagerSelected(
+                    if (isChecked) MyLayoutManager(buttonView.context)
+                    else LinearLayoutManager(buttonView.context))
+
+        R.id.custom_animator ->
+            view.onItemAnimatorSelected(
+                    if (isChecked) MyItemAnimator()
+                    else DefaultItemAnimator())
+
+        else -> throw IllegalArgumentException()
+    }
+
+    override fun onClick(position: Int, checkedRadioId: Int) = when (checkedRadioId) {
+        R.id.add_btn ->
+            adapter.addItemAt(position + 1, randomColor())
+
+        R.id.change_btn ->
+            adapter.changeItemAt(position, randomColor())
+
+        R.id.delete_btn ->
+            adapter.deleteItemAt(position)
+
+        else -> throw IllegalArgumentException()
     }
 }
 
-class ColorsFragment() : Fragment(), ColorsCallback, CompoundButton.OnCheckedChangeListener {
+class ColorsFragment() : Fragment(),
+        ColorsView,
+        ColorsCallback,
+        CompoundButton.OnCheckedChangeListener {
 
 
     val colorsAdapter = ColorsAdapter()
 
     lateinit var recyclerView: RecyclerView
     lateinit var radioGroup: RadioGroup
-    lateinit var predictiveAnimations: CheckBox
-    lateinit var customAnimator: CheckBox
-
     lateinit var colorsController: ColorsController
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -53,10 +84,11 @@ class ColorsFragment() : Fragment(), ColorsCallback, CompoundButton.OnCheckedCha
         val view = inflater.inflate(R.layout.fragment_colors, container, false)
 
         radioGroup = view.findViewById(R.id.radio_group) as RadioGroup
-        predictiveAnimations = view.findViewById(R.id.predictive_animations) as CheckBox
+
+        val predictiveAnimations = view.findViewById(R.id.predictive_animations) as CheckBox
         predictiveAnimations.setOnCheckedChangeListener(this)
 
-        customAnimator = view.findViewById(R.id.custom_animator) as CheckBox
+        val customAnimator = view.findViewById(R.id.custom_animator) as CheckBox
         customAnimator.setOnCheckedChangeListener(this)
 
         recyclerView = view.findViewById(R.id.colors) as RecyclerView
@@ -64,7 +96,7 @@ class ColorsFragment() : Fragment(), ColorsCallback, CompoundButton.OnCheckedCha
         recyclerView.adapter = colorsAdapter
 
         colorsAdapter.callback = this
-        colorsController = ColorsControllerImpl(colorsAdapter)
+        colorsController = ColorsControllerImpl(this, colorsAdapter)
 
         return view
     }
@@ -78,17 +110,15 @@ class ColorsFragment() : Fragment(), ColorsCallback, CompoundButton.OnCheckedCha
     }
 
     override fun onCheckedChanged(buttonView: CompoundButton, isChecked: Boolean) {
-        when (buttonView.id) {
-            R.id.predictive_animations ->
-                recyclerView.layoutManager =
-                        if (isChecked) MyLayoutManager(buttonView.context)
-                        else LinearLayoutManager(buttonView.context)
+        colorsController.onCheckedChanged(buttonView, isChecked)
+    }
 
-            R.id.custom_animator ->
-                recyclerView.itemAnimator =
-                        if (isChecked) MyItemAnimator()
-                        else DefaultItemAnimator()
-        }
+    override fun onLayoutManagerSelected(layoutManager: RecyclerView.LayoutManager) {
+        recyclerView.layoutManager = layoutManager
+    }
+
+    override fun onItemAnimatorSelected(itemAnimator: SimpleItemAnimator) {
+        recyclerView.itemAnimator = itemAnimator
     }
 
 }
